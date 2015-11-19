@@ -11,6 +11,7 @@ parser.add_argument("-t","--target", nargs='*',help="Target IP")
 parser.add_argument("-k","--key",nargs='?',help="API key")
 parser.add_argument("-u","--user", nargs='?', help="API user")
 parser.add_argument("-c",'--csv',nargs="?",help="CSV file as the output")
+parser.add_argument("-f","--inputfile",nargs='?', help="input file containing the IP's and/or CIDR's")
 args=parser.parse_args()
 
 '''apiuser=''
@@ -52,32 +53,54 @@ def callurl(urltouse,pos_target):
 		print 'API access error: {}'.format(err)
 		exit(0)
 
-'''
-collecting the targets entered.
-list used as multiple can be entered
-'''
-
-ips=[]
-if len(args.target)>1:
-	for i in range(0,len(args.target)):
-		ips.append(args.target[i])
-else:
-	ips.append(args.target[0])
 
 '''
+function to build the url based on the particular input or the line in a file.
+ipregfind= stores the value of none if the value is not an IP
+cidregfind= stores the value none if the value is not a CIDR
+
 Regular expressions being used to determine if the entered target value is an IP or a CIDR.
-The URL to be used changes based on the what the target is
+The URL to be used changes based on the type of target
+url= the url that will be used by the requests module. 
+position= the position of the IP or CIDR in the list or in the file.
+callurl method is called for each entry.
+
+Invalid input is print if the value is neither an IP or a CIDR.
+'''
+def build_url(raw_field,position):
+	ipregfind=re.search("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",raw_field)
+	cidregfind=re.search("^\d{1,3}\.\d{1,3}\.$", raw_field)
+	if ipregfind is not None:
+		url= '{}/{}/?username={}&api_key={}&ip={}'.format(query_api_url,resource,apiuser,apikey,raw_field)
+		callurl(url,position)
+	elif cidregfind is not None:
+		url='{}/{}/?username={}&api_key={}&q=(status="active")and(value startswith "{}")'.format(query_api_url,resource,apiuser,apikey,raw_field)
+		callurl(url, position)
+	else:
+		print raw_field + "invalid input"
+		exit(0)
+
+
+'''
+collecting the targets entered or reading the input file entered.
+ips= a list, used as multiple command line arguments are accepted for the -t argument.
+if -f option is used, a file containing IP's and/or CIDR's has been given as input.
+Each line is read from the line, and the function build_url is called for each line after stripping the new line off.
 '''
 
-for j in range(0, len(ips)):
-	ipregfind=re.search("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",ips[j])
-	cidregfind=re.search("^\d{1,3}\.\d{1,3}\.$", ips[j])
-	if ipregfind is not None:
-		url= '{}/{}/?username={}&api_key={}&ip={}'.format(query_api_url,resource,apiuser,apikey,ips[j])
-		callurl(url,j)
-	elif cidregfind is not None:
-		url='{}/{}/?username={}&api_key={}&q=(status="active")and(value startswith "{}")'.format(query_api_url,resource,apiuser,apikey,ips[j])
-		callurl(url,j)
+if args.target:
+	ips=[]
+	if len(args.target)>1:
+		for i in range(0,len(args.target)):
+			ips.append(args.target[i])
 	else:
-		print ips[j], "inavlid input"
-		exit(0)
+		ips.append(args.target[0])
+	for j in range(0, len(ips)):
+		build_url(ips[j],j)
+
+elif args.inputfile:
+	count_line=0
+	f=open(args.inputfile,"rb")
+	for l in f:
+		build_url(l.rstrip(),count_line)
+		count_line+=1
