@@ -14,7 +14,7 @@ class OutputTypes(object):
 		z.writerow([strng,"count"])
 		print list_
 		if len(set(list_))==1:
-			z.writerow([list_[1],total_count])
+			z.writerow([list_[0],total_count])
 		else:
 			for i in set(list_):
 				xx=str(i)
@@ -39,6 +39,7 @@ class OutputTypes(object):
 				list_itype.append(r[1])
 			elif r[0]=="detail":
 				list_detail.append(r[1])
+		linecache.clearcache()
 
 		f=open(self.file_name,"a")
 		c=csv.writer(f,quoting=csv.QUOTE_MINIMAL,lineterminator="\n")
@@ -79,8 +80,8 @@ class OutputTypes(object):
 		with open(self.file_name) as f2:
 			for ll in f2:
 				file_end+=1
-		print line_start+1, file_end
-		self.unique_result(blob_len,line_start+1,file_end)
+		#print line_start+1, file_end
+		self.unique_result(blob_len,(line_start+2),(file_end+1))
 
 	def csvoutfile(self):
 		f=open(self.file_name,"wb")
